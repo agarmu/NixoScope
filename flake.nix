@@ -34,6 +34,7 @@
     {
       devShells.${system}.default = pkgs.mkShell {
         buildInputs = [
+          pkgs.jq
           pkgs.ruff
           pkgs.ty
           pkgs.uv
