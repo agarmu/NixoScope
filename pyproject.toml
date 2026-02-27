@@ -5,7 +5,9 @@ description = "A simple flake-parts-graph (fpg) analyser that prints the import 
 readme = "README.md"
 requires-python = ">=3.13"
 
-dependencies = []
+dependencies = [
+    "graphviz>=0.21",
+]
 
 [project.scripts]
 main = "fpg:main"

@@ -28,12 +28,10 @@ For more details, see the [announcement on NixOS Discourse](https://discourse.ni
 `fpg.py --input graph.json`  
 
 ### Output format:
+#### Graphviz: 
+`fpg.py --input graph.json --format gv`  
 #### JSON  
 `fpg.py --input graph.json --format json`  
-
-#### Graphviz: 
-`fpg.py --input graph.json --format graphviz`  
-
 
 ## Result
 ![Graphviz output](./graph.svg)

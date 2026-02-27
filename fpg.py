@@ -4,6 +4,8 @@ import json
 from dataclasses import dataclass, field
 from pathlib import Path
 
+import graphviz
+
 
 @dataclass
 class ModuleNode:
@@ -83,25 +85,24 @@ class ModuleGraph:
             result.append(self.modules[key].to_dict())
         return json.dumps(result, indent=2)
 
-    def to_graphviz(self) -> str:
-        lines = ["digraph ModuleGraph {", '\tnode [shape=box fontname="Helvetica"]']
-        for (source, path), _ in self.modules.items():
-            node_id = f"{source}:{path}"
-            escaped_id = node_id.replace('"', '\\"')
-            escaped_path = path.replace('"', '\\"')
-            escaped_source = source.replace('"', '\\"')
-            # HTML-like label: path bold on top, source italic below
-            label = f"<<B>{escaped_path}</B><BR/><I>{escaped_source}</I>>"
-            lines.append(f'\t"{escaped_id}" [label={label}];')
+    def to_gv(self) -> graphviz.Digraph:
+        dot = graphviz.Digraph("ModuleGraph")
+        dot.attr("node", shape="box", fontname="Helvetica")
+
+        # Add nodes
+        for source, path in self.modules:
+            node_id = f"{source}-{path}"
+            label = f"<<B>{path}</B><BR/><I>{source}</I>>"
+            dot.node(name=node_id, label=label)
+
+        # Add edges
         for (source, path), node in self.modules.items():
-            from_id = f"{source}:{path}"
-            escaped_from = from_id.replace('"', '\\"')
+            from_id = f"{source}-{path}"
             for imported_edge in node.imports:
-                to_id = f"{imported_edge.source}:{imported_edge.path}"
-                escaped_to = to_id.replace('"', '\\"')
-                lines.append(f'\t"{escaped_from}" -> "{escaped_to}";')
-        lines.append("}")
-        return "\n".join(lines)
+                to_id = f"{imported_edge.source}-{imported_edge.path}"
+                dot.edge(from_id, to_id)
+
+        return dot
 
 
 def parse_args() -> argparse.Namespace:
@@ -115,9 +116,9 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--format",
         type=str,
-        choices=["json", "graphviz"],
-        default="json",
-        help="Output format (default: json)",
+        choices=["gv", "json"],
+        default="gv",
+        help="Output format (default: gv)",
     )
 
     return parser.parse_args()
@@ -137,10 +138,10 @@ def main():
     data = [element for element in data if str(element["file"]).endswith("/flake.nix")]
     graph = ModuleGraph(data)
 
-    if args.format == "json":
-        print(graph.to_json())
+    if args.format == "gv":
+        print(graph.to_gv())
     else:
-        print(graph.to_graphviz())
+        print(graph.to_json())
 
 
 if __name__ == "__main__":
