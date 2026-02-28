@@ -14,8 +14,8 @@ class ModuleGraphEdge:
     path: str = field(default_factory=str)
     option: str = field(default_factory=str)
 
-    def __init__(self, entry: dict) -> None:
-        source_path, _, path_and_option = str(entry["file"]).partition("-source")
+    def __init__(self, raw_module: dict) -> None:
+        source_path, _, path_and_option = str(raw_module["file"]).partition("-source")
         self.source = source_path.rsplit("/", 1)[-1]
         path_and_option = path_and_option.removeprefix("/")
         self.path, _, self.option = path_and_option.partition(", via option ")
@@ -49,21 +49,21 @@ class ModuleGraphNode(ModuleGraphEdge):
 class ModuleGraph:
     modules: dict[tuple[str, str], ModuleGraphNode]
 
-    def __init__(self, data: list) -> None:
+    def __init__(self, raw_modules: list) -> None:
         """Build a ModuleGraph from the loaded JSON data."""
         self.modules = {}
-        for entry in data:
-            self._process_entry(entry)
+        for raw_module in raw_modules:
+            self._process_entry(raw_module)
 
-    def _process_entry(self, entry: dict, parent: ModuleGraphNode | None = None) -> None:
+    def _process_entry(self, raw_module: dict, parent: ModuleGraphNode | None = None) -> None:
         """Process a single entry from the graph JSON and add it to the ModuleGraph."""
-        edge = ModuleGraphEdge(entry)
+        edge = ModuleGraphEdge(raw_module)
         node = self._get_or_create_module(edge)
 
         if parent is not None and edge != parent:
             self._add_import_to_module(parent, edge)
 
-        imports = entry.get("imports", [])
+        imports = raw_module.get("imports", [])
         for imported_entry in imports:
             self._process_entry(imported_entry, node)
 
@@ -80,9 +80,7 @@ class ModuleGraph:
             self.modules[key].imports.append(edge)
 
     def to_json(self) -> str:
-        result = []
-        for key in self.modules:
-            result.append(self.modules[key].to_dict())
+        result = [module.to_dict() for module in self.modules.values()]
         return json.dumps(result, indent=2)
 
     def to_gv(self) -> graphviz.Digraph:
@@ -144,11 +142,11 @@ def load_json(json_file: Path) -> dict:
 
 def main():
     args = parse_args()
-    data = load_json(args.input)
+    raw_modules = load_json(args.input)
 
     # Filter data to only handle everything under flake.nix
-    data = [element for element in data if str(element["file"]).endswith("/flake.nix")]
-    graph = ModuleGraph(data)
+    raw_modules = [raw_module for raw_module in raw_modules if str(raw_module["file"]).endswith("/flake.nix")]
+    graph = ModuleGraph(raw_modules)
 
     if args.format == "gv":
         print(graph.to_gv())
