@@ -18,11 +18,7 @@ class ModuleGraphEdge:
         source_path, _, path_and_option = str(entry["file"]).partition("-source")
         self.source = source_path.rsplit("/", 1)[-1]
         path_and_option = path_and_option.removeprefix("/")
-        if ", " in path_and_option:
-            self.path, _, self.option = path_and_option.partition(", ")
-        else:
-            self.path = path_and_option
-            self.option = ""
+        self.path, _, self.option = path_and_option.partition(", via option ")
 
     def to_dict(self):
         return {"source": self.source, "path": self.path}
