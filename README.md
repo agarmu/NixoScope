@@ -26,15 +26,23 @@ For more details, see the [announcement on NixOS Discourse](https://discourse.ni
 
 ### Read the input graph:
 `nixoscope.py --input graph.json`  
+default: graph.json
 
 ### Output format:
 #### Graphviz: 
-`nixoscope.py --input graph.json --format gv`  
+`nixoscope.py --format gv`  
+default: gv
 #### JSON  
-`nixoscope.py --input graph.json --format json`  
+`nixoscope.py --format json`  
+default: gv
+
+### Filter by option prefix
+`nixoscope.py --option "flakes.modules"`  
 
 ## Result
-![Graphviz output](./graph.svg)
+![Graphviz output](./docs/graph.svg)
+### Filtered by "flake.modules"
+![Graphviz output](./docs/graph-filtered.svg)
 
 ## Disclaimer
 This project uses AI as an aid.

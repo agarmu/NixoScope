@@ -49,23 +49,37 @@ class ModuleGraphNode(ModuleGraphEdge):
 class ModuleGraph:
     modules: dict[tuple[str, str], ModuleGraphNode]
 
-    def __init__(self, raw_modules: list) -> None:
+    def __init__(self, raw_modules: list, option_filter: str | None) -> None:
         """Build a ModuleGraph from the loaded JSON data."""
         self.modules = {}
         for raw_module in raw_modules:
-            self._process_entry(raw_module)
+            self._process_entry(raw_module, option_filter=option_filter)
 
-    def _process_entry(self, raw_module: dict, parent: ModuleGraphNode | None = None) -> None:
+    def _process_entry(
+        self,
+        raw_module: dict,
+        option_filter: str | None,
+        parent: ModuleGraphNode | None = None,
+    ) -> None:
         """Process a single entry from the graph JSON and add it to the ModuleGraph."""
         edge = ModuleGraphEdge(raw_module)
-        node = self._get_or_create_module(edge)
 
-        if parent is not None and edge != parent:
-            self._add_import_to_module(parent, edge)
+        # Check if flake.nix starting point
+        is_flake_entry = edge.path == "flake.nix"
+        # Check if option filter should be applied and if this edge matches the option filter
+        matches_option_filter = option_filter is None or edge.option.startswith(option_filter)
 
+        if is_flake_entry or matches_option_filter:
+            node = self._get_or_create_module(edge)
+            if parent and edge != parent:
+                self._add_import_to_module(parent, edge)
+        else:
+            node = parent
+
+        # Always process imports recursively
         imports = raw_module.get("imports", [])
         for imported_entry in imports:
-            self._process_entry(imported_entry, node)
+            self._process_entry(imported_entry, option_filter, node)
 
     def _get_or_create_module(self, edge: ModuleGraphEdge) -> ModuleGraphNode:
         key = (edge.source, edge.path)
@@ -130,6 +144,12 @@ def parse_args() -> argparse.Namespace:
         default="gv",
         help="Output format (default: gv)",
     )
+    parser.add_argument(
+        "--option",
+        type=str,
+        default=None,
+        help="Filter by option prefix",
+    )
 
     return parser.parse_args()
 
@@ -146,7 +166,7 @@ def main():
 
     # Filter data to only handle everything under flake.nix
     raw_modules = [raw_module for raw_module in raw_modules if str(raw_module["file"]).endswith("/flake.nix")]
-    graph = ModuleGraph(raw_modules)
+    graph = ModuleGraph(raw_modules, args.option)
 
     if args.format == "gv":
         print(graph.to_gv())
