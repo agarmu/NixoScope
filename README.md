@@ -37,7 +37,7 @@ default: gv
 default: gv
 
 ### Filter by option prefix
-`nixoscope.py --option "flakes.modules"`  
+`nixoscope.py --option "flake.modules"`  
 
 ## Result
 ![Graphviz output](./docs/graph.svg)
